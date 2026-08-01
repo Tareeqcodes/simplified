@@ -1,0 +1,169 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-read: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+}
+
+:root {
+  --paper: #faf8f4;
+  --card: #ffffff;
+  --ink: #1a1917;
+  --ink-soft: #55524c;
+  --ink-faint: #8b877f;
+  --line: #e6e1d8;
+  --accent: #1a6b47;
+  --accent-soft: #e4f0ea;
+  --warn: #a1571b;
+  --warn-soft: #fbeee0;
+}
+
+.dark {
+  --paper: #16181a;
+  --card: #1e2124;
+  --ink: #eceae6;
+  --ink-soft: #a9a49c;
+  --ink-faint: #6f6b64;
+  --line: #2e3235;
+  --accent: #4bbd87;
+  --accent-soft: #17342a;
+  --warn: #d69154;
+  --warn-soft: #33261a;
+}
+
+html,
+body {
+  background: var(--paper);
+  color: var(--ink);
+}
+
+body {
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+* {
+  border-color: var(--line);
+}
+
+/* The reading pane — the only place we use the serif, and the reason we have one. */
+.prose-read {
+  font-family: var(--font-read);
+  font-size: 1.075rem;
+  line-height: 1.75;
+  color: var(--ink);
+}
+.prose-read p {
+  margin-bottom: 1.15em;
+}
+.prose-read h2 {
+  font-size: 1.05rem;
+  font-weight: 600;
+  font-family: var(--font-sans);
+  letter-spacing: 0.01em;
+  color: var(--ink);
+  margin: 2em 0 0.75em;
+}
+.prose-read h3 {
+  font-size: 0.95rem;
+  font-weight: 600;
+  font-family: var(--font-sans);
+  margin: 1.6em 0 0.6em;
+}
+.prose-read ul,
+.prose-read ol {
+  margin: 0 0 1.15em 1.15em;
+}
+.prose-read li {
+  margin-bottom: 0.4em;
+  list-style: disc;
+}
+.prose-read ol li {
+  list-style: decimal;
+}
+.prose-read strong {
+  font-weight: 600;
+}
+.prose-read code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.9em;
+  background: var(--accent-soft);
+  padding: 0.1em 0.35em;
+  border-radius: 4px;
+}
+.prose-read em {
+  font-style: italic;
+}
+
+.verbatim {
+  font-family: var(--font-read);
+  font-size: 0.95rem;
+  line-height: 1.7;
+  color: var(--ink-soft);
+  white-space: pre-wrap;
+}
+
+::selection {
+  background: var(--accent-soft);
+  color: var(--ink);
+}
+
+/* Scrollbars stay out of the way but remain visible when needed. */
+.scroll-thin::-webkit-scrollbar {
+  width: 9px;
+  height: 9px;
+}
+.scroll-thin::-webkit-scrollbar-thumb {
+  background: var(--line);
+  border-radius: 99px;
+}
+.scroll-thin::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.rise {
+  animation: rise 0.28s ease-out both;
+}
+
+@keyframes pulse-soft {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.45;
+  }
+}
+.pulsing {
+  animation: pulse-soft 1.4s ease-in-out infinite;
+}
+
+@keyframes fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+.fade {
+  animation: fade 0.18s ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rise,
+  .pulsing,
+  .fade {
+    animation: none;
+  }
+}

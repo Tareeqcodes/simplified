@@ -1,0 +1,10 @@
+node_modules
+.next
+.DS_Store
+*.tsbuildinfo
+next-env.d.ts
+
+# Never commit real keys. .env.example is the only env file that is safe.
+.env
+.env.*
+!.env.example
