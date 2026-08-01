@@ -49,7 +49,7 @@ export default function OpengraphImage() {
             Exam prep, built from your own handouts
           </div>
           <div style={{ display: "flex", fontSize: 33, color: "#55524c", lineHeight: 1.35 }}>
-            Drop in a handout and get plain-English notes, flashcards and exam practice made from it.
+            Drop in a handout. Get a clear, section-by-section digest of it in plain English.
           </div>
         </div>
       </div>
