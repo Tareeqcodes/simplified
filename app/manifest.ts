@@ -2,7 +2,7 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "Simplified — exam prep from your handouts",
+    name: "Simplified  exam prep from your handouts",
     short_name: "Simplified",
     description:
       "Turn lecture handouts into plain-English notes, recall cards and marked exam practice.",
