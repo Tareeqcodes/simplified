@@ -48,30 +48,9 @@ export default function OpengraphImage() {
           <div style={{ display: "flex", fontSize: 76, fontWeight: 700, color: "#1a1917", lineHeight: 1.05, letterSpacing: -1.5 }}>
             Exam prep, built from your own handouts
           </div>
-          <div style={{ display: "flex", fontSize: 33, color: "#55524c", lineHeight: 1.3 }}>
-            Upload a lecture PDF — get plain-English notes, recall cards and marked practice questions.
+          <div style={{ display: "flex", fontSize: 33, color: "#55524c", lineHeight: 1.35 }}>
+            Drop in a handout and get plain-English notes, flashcards and exam practice made from it.
           </div>
-        </div>
-
-        {/* Flow chips */}
-        <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-          {["Upload", "Digest", "Read", "Share"].map((step) => (
-            <div
-              key={step}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                background: "#e4f0ea",
-                color: "#1a6b47",
-                padding: "10px 24px",
-                borderRadius: 999,
-                fontSize: 27,
-                fontWeight: 600,
-              }}
-            >
-              {step}
-            </div>
-          ))}
         </div>
       </div>
     ),
