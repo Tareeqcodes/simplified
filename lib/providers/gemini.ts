@@ -21,19 +21,25 @@ import { ProviderError } from "./types";
 const API = "https://generativelanguage.googleapis.com/v1beta";
 const UPLOAD = "https://generativelanguage.googleapis.com/upload/v1beta";
 
-const MODEL_DIGEST = process.env.GEMINI_MODEL_DIGEST ?? "gemini-2.5-flash";
-const MODEL_OUTLINE = process.env.GEMINI_MODEL_OUTLINE ?? "gemini-2.5-flash";
-const MODEL_ASK = process.env.GEMINI_MODEL_ASK ?? "gemini-2.5-flash";
+// Rolling "-latest" aliases so a model retirement can't break the app again
+// (gemini-2.5-flash was pulled for new keys). Pin a version via env if you want.
+const MODEL_DIGEST = process.env.GEMINI_MODEL_DIGEST ?? "gemini-flash-latest";
+const MODEL_OUTLINE = process.env.GEMINI_MODEL_OUTLINE ?? "gemini-flash-latest";
+const MODEL_ASK = process.env.GEMINI_MODEL_ASK ?? "gemini-flash-latest";
 
 /**
- * Gemini 2.5 Flash "thinks" before answering by default — latency we don't need
- * for schema-constrained work where the answer's shape is fixed and the source
- * text is right there. 0 disables it (fastest). The section rewrite is the one
- * job where a little reasoning might help the prose, so it has its own dial:
- * bump SECTION_THINKING_BUDGET to e.g. 512 if the quality dips at 0.
+ * Flash models think before answering, which is latency we don't need for
+ * schema-constrained work where the shape is fixed and the source is right
+ * there. We cap it to a minimal budget instead of paying for a full dynamic
+ * pass. Note: current models reject a budget of 0 (400), so LOW_THINKING is the
+ * floor; a budget of 0 here omits the config and lets the model decide. The
+ * section rewrite is the one job where more reasoning can help the prose — bump
+ * GEMINI_SECTION_THINKING (e.g. 512) if it dips.
  */
-const SECTION_THINKING_BUDGET = Number(process.env.GEMINI_SECTION_THINKING ?? 0);
-const thinking = (budget: number) => ({ thinkingConfig: { thinkingBudget: budget } });
+const LOW_THINKING = 128;
+const SECTION_THINKING_BUDGET = Number(process.env.GEMINI_SECTION_THINKING ?? LOW_THINKING);
+const thinking = (budget: number) =>
+  budget > 0 ? { thinkingConfig: { thinkingBudget: budget } } : {};
 
 function key(): string {
   const k = process.env.GEMINI_API_KEY?.trim();
@@ -141,7 +147,7 @@ export const geminiProvider: Provider = {
     const data = await call(MODEL_OUTLINE, {
       systemInstruction: { parts: [{ text: HOUSE_RULES }] },
       contents: [{ role: "user", parts: [...docParts(src), { text: outlinePrompt(src.kind) }] }],
-      generationConfig: { ...jsonConfig(OUTLINE_SCHEMA), maxOutputTokens: 8000, ...thinking(0) },
+      generationConfig: { ...jsonConfig(OUTLINE_SCHEMA), maxOutputTokens: 8000, ...thinking(LOW_THINKING) },
     });
     return readJson<OutlineResult>(data);
   },
@@ -268,7 +274,7 @@ under 250 words unless the question genuinely needs more.`;
     const data = await call(MODEL_ASK, {
       systemInstruction: { parts: [{ text: HOUSE_RULES }] },
       contents: [{ role: "user", parts: [{ text: gradePrompt(params) }] }],
-      generationConfig: { ...jsonConfig(GRADE_SCHEMA), maxOutputTokens: 4000, ...thinking(0) },
+      generationConfig: { ...jsonConfig(GRADE_SCHEMA), maxOutputTokens: 4000, ...thinking(LOW_THINKING) },
     });
     const graded = readJson<GradeResult>(data);
     graded.awarded = Math.max(0, Math.min(params.marks, graded.awarded));
