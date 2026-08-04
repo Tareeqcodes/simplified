@@ -9,20 +9,37 @@ import { newReview } from "./schedule";
 import { emptySection, type Card, type ExamQuestion, type Handout, type Section } from "./types";
 
 /**
- * How many sections digest at once. Kept modest so Gemini's free tier doesn't
- * 429 mid-run; raise it on a paid key to finish the whole handout sooner.
+ * How many sections digest at once. Kept low so Gemini's free tier — a few
+ * requests a minute — doesn't 429 mid-run; raise it on a paid key to finish the
+ * whole handout sooner.
  */
-const CONCURRENCY = 3;
+const CONCURRENCY = 2;
+
+/** How many times a rate-limited / transient call waits and re-tries itself. */
+const MAX_RETRIES = 4;
+
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 async function post<T>(url: string, body: unknown): Promise<T> {
-  const res = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
-  const data = await res.json();
-  if (!res.ok) throw new Error(data?.error ?? `Request failed (${res.status})`);
-  return data as T;
+  for (let attempt = 0; ; attempt++) {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (res.ok) return data as T;
+
+    // A busy free tier (429) or a transient upstream blip (503) isn't a real
+    // failure — the request just needs to wait its turn. Back off and re-digest
+    // rather than dropping the section on the floor with an error. Only when the
+    // retries are spent do we give up and let the caller mark it failed.
+    if ((res.status === 429 || res.status === 503) && attempt < MAX_RETRIES) {
+      await sleep(Math.min(15000, 2000 * 2 ** attempt) + Math.random() * 500);
+      continue;
+    }
+    throw new Error((data as { error?: string }).error ?? `Request failed (${res.status})`);
+  }
 }
 
 export interface Progress {
