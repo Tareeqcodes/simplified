@@ -2,10 +2,17 @@
 
 import { deleteHandout, getHandout, saveFile, saveHandout, saveReviews, uid } from "./db";
 import { adoptDigest, adoptShared, findAnyDigest } from "./dedupe";
-import { extractPdf, fullText, pageRangeText } from "./pdf";
+import { extractDocument, providerCanReadRaw } from "./extract";
+import { fullText, pageRangeText } from "./pdf";
 import { checkFile, enforceQuota } from "./quota";
 import { newReview } from "./schedule";
 import { emptySection, type Card, type ExamQuestion, type Handout, type Section } from "./types";
+
+/**
+ * How many sections digest at once. Kept modest so Gemini's free tier doesn't
+ * 429 mid-run; raise it on a paid key to finish the whole handout sooner.
+ */
+const CONCURRENCY = 3;
 
 async function post<T>(url: string, body: unknown): Promise<T> {
   const res = await fetch(url, {
@@ -86,18 +93,21 @@ export async function digestHandout(
   };
 
   try {
-    // Read the PDF locally first. If it has a text layer we never upload the
+    // Read the handout locally first. If we recover its text we never upload the
     // file at all, and every later call carries words instead of page images.
-    onProgress({ phase: "reading", done: 0, total: 1, label: "Reading the PDF…" });
+    onProgress({ phase: "reading", done: 0, total: 1, label: "Reading your handout…" });
 
-    // Extraction is an optimisation, never a requirement. If the browser can't
-    // do it — an old engine, a malformed PDF, a blocked worker — fall back to
-    // sending the file as pages. Slower and dearer, but the handout still works.
-    let extracted: Awaited<ReturnType<typeof extractPdf>> | null = null;
+    // For a PDF, extraction is an optimisation: if the browser can't do it — an
+    // old engine, a malformed PDF, a blocked worker — we fall back to letting the
+    // model read the PDF itself. For PowerPoint/Word/text there is no such
+    // fallback (the providers can't read those raw), so a failure there is fatal
+    // and must reach the user rather than being silently swallowed.
+    let extracted: Awaited<ReturnType<typeof extractDocument>> | null = null;
     try {
-      extracted = await extractPdf(file);
+      extracted = await extractDocument(file);
     } catch (err) {
-      console.warn("PDF text extraction failed; falling back to page images.", err);
+      if (!providerCanReadRaw(file)) throw err;
+      console.warn("PDF text extraction failed; falling back to sending the file.", err);
     }
 
     await save({
@@ -273,12 +283,18 @@ export async function digestHandout(
 
     onProgress({ phase: "digesting", done: 0, total, label: "Breaking down section 1…" });
 
-    // First alone to warm the cache, then three at a time.
-    await runOne(0);
-    for (let i = 1; i < total; i += 3) {
-      await Promise.all(
-        sections.slice(i, i + 3).map((_, k) => runOne(i + k)),
-      );
+    // A scan re-sends the whole PDF on every call, so warming the cache with
+    // section 1 alone earns its keep. A text handout sends only each section's
+    // own pages — there's nothing to warm — so parallelise from the very first
+    // section and get readable content in front of the student sooner.
+    const scanned = !extracted || extracted.isScanned;
+    let from = 0;
+    if (scanned && total > 1) {
+      await runOne(0);
+      from = 1;
+    }
+    for (let i = from; i < total; i += CONCURRENCY) {
+      await Promise.all(sections.slice(i, i + CONCURRENCY).map((_, k) => runOne(i + k)));
     }
 
     const final = (await getHandout(id))!;
@@ -381,10 +397,15 @@ export async function resumeHandout(
     }
   };
 
-  // Same shape as a fresh run: one alone to warm the cache, then in threes.
-  await run(todo[0].index);
-  for (let i = 1; i < todo.length; i += 3) {
-    await Promise.all(todo.slice(i, i + 3).map(({ index }) => run(index)));
+  // Same shape as a fresh run: warm the cache with one section first only when
+  // it's a scan; a text handout has nothing to warm, so go parallel at once.
+  let from = 0;
+  if (start.isScanned && todo.length > 1) {
+    await run(todo[0].index);
+    from = 1;
+  }
+  for (let i = from; i < todo.length; i += CONCURRENCY) {
+    await Promise.all(todo.slice(i, i + CONCURRENCY).map(({ index }) => run(index)));
   }
 
   const final = await getHandout(handoutId);

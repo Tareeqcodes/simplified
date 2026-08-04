@@ -25,6 +25,16 @@ const MODEL_DIGEST = process.env.GEMINI_MODEL_DIGEST ?? "gemini-2.5-flash";
 const MODEL_OUTLINE = process.env.GEMINI_MODEL_OUTLINE ?? "gemini-2.5-flash";
 const MODEL_ASK = process.env.GEMINI_MODEL_ASK ?? "gemini-2.5-flash";
 
+/**
+ * Gemini 2.5 Flash "thinks" before answering by default — latency we don't need
+ * for schema-constrained work where the answer's shape is fixed and the source
+ * text is right there. 0 disables it (fastest). The section rewrite is the one
+ * job where a little reasoning might help the prose, so it has its own dial:
+ * bump SECTION_THINKING_BUDGET to e.g. 512 if the quality dips at 0.
+ */
+const SECTION_THINKING_BUDGET = Number(process.env.GEMINI_SECTION_THINKING ?? 0);
+const thinking = (budget: number) => ({ thinkingConfig: { thinkingBudget: budget } });
+
 function key(): string {
   const k = process.env.GEMINI_API_KEY?.trim();
   if (!k) {
@@ -131,7 +141,7 @@ export const geminiProvider: Provider = {
     const data = await call(MODEL_OUTLINE, {
       systemInstruction: { parts: [{ text: HOUSE_RULES }] },
       contents: [{ role: "user", parts: [...docParts(src), { text: outlinePrompt(src.kind) }] }],
-      generationConfig: { ...jsonConfig(OUTLINE_SCHEMA), maxOutputTokens: 8000 },
+      generationConfig: { ...jsonConfig(OUTLINE_SCHEMA), maxOutputTokens: 8000, ...thinking(0) },
     });
     return readJson<OutlineResult>(data);
   },
@@ -143,6 +153,7 @@ export const geminiProvider: Provider = {
       generationConfig: {
         ...jsonConfig(sectionSchema(ctx.needsOriginal)),
         maxOutputTokens: 16000,
+        ...thinking(SECTION_THINKING_BUDGET),
       },
     });
     return readJson<SectionResult>(data);
@@ -257,7 +268,7 @@ under 250 words unless the question genuinely needs more.`;
     const data = await call(MODEL_ASK, {
       systemInstruction: { parts: [{ text: HOUSE_RULES }] },
       contents: [{ role: "user", parts: [{ text: gradePrompt(params) }] }],
-      generationConfig: { ...jsonConfig(GRADE_SCHEMA), maxOutputTokens: 4000 },
+      generationConfig: { ...jsonConfig(GRADE_SCHEMA), maxOutputTokens: 4000, ...thinking(0) },
     });
     const graded = readJson<GradeResult>(data);
     graded.awarded = Math.max(0, Math.min(params.marks, graded.awarded));

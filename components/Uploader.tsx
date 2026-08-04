@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { digestHandout, type Progress } from "@/lib/digest";
+import { UPLOAD_ACCEPT, unsupportedReason } from "@/lib/extract";
 import { checkQuota, LIMITS } from "@/lib/quota";
 import type { Course } from "@/lib/types";
 import { Button, Card, Icon } from "./ui";
@@ -30,8 +31,9 @@ export function Uploader({
 
   async function handle(file: File | undefined) {
     if (!file) return;
-    if (file.type !== "application/pdf") {
-      setError("That isn't a PDF. Handouts need to be PDF files.");
+    const reason = unsupportedReason(file);
+    if (reason) {
+      setError(reason);
       return;
     }
     const course = courses.find((c) => c.id === courseId);
@@ -115,12 +117,14 @@ export function Uploader({
         <p className="text-[14px] font-medium mb-1 tracking-[-0.01em]">
           {dragging ? "Drop it here" : "Drop a handout, or click to browse"}
         </p>
-        
+        <p className="text-[12px]" style={{ color: "var(--ink-faint)" }}>
+          PDF, PowerPoint, Word or text
+        </p>
 
         <input
           ref={inputRef}
           type="file"
-          accept="application/pdf"
+          accept={UPLOAD_ACCEPT}
           className="hidden"
           onChange={(e) => handle(e.target.files?.[0])}
         />

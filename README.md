@@ -2,10 +2,10 @@
 
 An exam-prep companion that happens to read your handouts.
 
-You drop in a lecture handout PDF. It gets broken into study-sized sections,
-each rewritten in plain English, with key terms, recall cards and practice
-questions generated from it. Reading is the on-ramp — the app exists to get you
-ready for the exam.
+You drop in a lecture handout — a PDF, PowerPoint, Word doc or text file. It gets
+broken into study-sized sections, each rewritten in plain English, with key
+terms, recall cards and practice questions generated from it. Reading is the
+on-ramp — the app exists to get you ready for the exam.
 
 ## Setup
 
@@ -28,10 +28,13 @@ without it everything still works, just locally on one machine.
 
 **Upload → digest → read → practice.**
 
-1. The PDF is read in the browser. A handout with a text layer never leaves your
-   machine as a file — only the words each call needs are sent. A scan, which has
-   no text, is uploaded once to the provider's file store and referenced by id
-   afterwards.
+1. The handout is read in the browser. PDFs are parsed with pdf.js; PowerPoint,
+   Word and text files are parsed for their text (each slide becomes a "page", so
+   citations still line up). Whatever the format, the words never leave your
+   machine as a file — only the text each call needs is sent. The one exception
+   is a scanned **PDF** with no text layer, which is uploaded once to the
+   provider's file store so the model can read it. (Image-only slides or docs
+   can't be read — the app asks you to export a PDF instead.)
 2. An outline pass splits it into sections with page ranges.
 3. Each section is digested into three reading depths of the same content, plus
    its study material.

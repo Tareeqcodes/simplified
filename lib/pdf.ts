@@ -72,7 +72,7 @@ export interface ExtractedPdf {
   charCount: number;
 }
 
-async function sha256(data: ArrayBuffer | string): Promise<string> {
+export async function sha256(data: ArrayBuffer | string): Promise<string> {
   const bytes = typeof data === "string" ? new TextEncoder().encode(data) : new Uint8Array(data);
   const digest = await crypto.subtle.digest("SHA-256", bytes as unknown as BufferSource);
   return Array.from(new Uint8Array(digest))
