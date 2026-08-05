@@ -12,7 +12,7 @@
 export const LIMITS = {
   /** New digestions per day. Adopting an existing digest does not count. */
   handoutsPerDay: 5,
-  pagesPerHandout: 100,
+  pagesPerHandout: 300,
   fileSizeBytes: 20 * 1024 * 1024,
   /** Ask + grade calls per day. Cheap, but not free. */
   questionsPerDay: 50,
